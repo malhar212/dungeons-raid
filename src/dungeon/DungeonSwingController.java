@@ -91,6 +91,7 @@ public class DungeonSwingController implements DungeonGraphicalController {
     if (view == null) {
       throw new IllegalStateException("View cannot be null");
     }
+    createGame();
     this.randomizer = randomizer;
     this.rows = rows;
     this.columns = columns;
@@ -98,7 +99,6 @@ public class DungeonSwingController implements DungeonGraphicalController {
     this.interconnectivity = interconnectivity;
     this.treasureAndArrowPercentage = treasureAndArrowPercentage;
     this.numberOfMonsters = numberOfMonsters;
-    createGame();
   }
 
   /**
@@ -108,41 +108,42 @@ public class DungeonSwingController implements DungeonGraphicalController {
    */
   @Override
   public void actionPerformed(ActionEvent e) {
-    String actionCommand = e.getActionCommand();
-    MenuItems menuClicked = MenuItems.getByText(actionCommand);
-    JFrame frame = (JFrame) view;
-    switch (menuClicked) {
-      case NEW_GAME: {
-        view.acquireDungeonConfig();
-        break;
-      }
-      case RESTART: {
-        this.dungeon = new DungeonModel(modelCopy);
-        view.setSource(dungeon);
-        view.refresh();
-        break;
-      }
-      case RESTART_CONFIG: {
-        try {
-          createGame();
+    if (e != null) {
+      String actionCommand = e.getActionCommand();
+      MenuItems menuClicked = MenuItems.getByText(actionCommand);
+      JFrame frame = (JFrame) view;
+      switch (menuClicked) {
+        case NEW_GAME: {
+          view.acquireDungeonConfig();
+          break;
         }
-        catch (IllegalArgumentException iae) {
-          view.showMessage(iae.getMessage());
+        case RESTART: {
+          this.dungeon = new DungeonModel(modelCopy);
+          view.setSource(dungeon);
           view.refresh();
+          break;
         }
-        break;
+        case RESTART_CONFIG: {
+          try {
+            createGame();
+          } catch (IllegalArgumentException iae) {
+            view.showMessage(iae.getMessage());
+            view.refresh();
+          }
+          break;
+        }
+        case QUIT: {
+          frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));
+          break;
+        }
+        case HELP: {
+          view.showHelp();
+          break;
+        }
+        default:
+          //Do nothing
+          break;
       }
-      case QUIT: {
-        frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));
-        break;
-      }
-      case HELP: {
-        view.showHelp();
-        break;
-      }
-      default:
-        //Do nothing
-        break;
     }
   }
 
@@ -153,17 +154,17 @@ public class DungeonSwingController implements DungeonGraphicalController {
    */
   @Override
   public void handleCellClick(Move move) {
-    try {
-      dungeon.movePlayer(move);
-      StringBuilder message = new StringBuilder("You moved ").append(move);
-      view.showMessage(message.toString());
-      view.refresh();
-    }
-    catch (IllegalArgumentException iae) {
-      view.showMessage(iae.getMessage());
-    }
-    catch (IllegalStateException ise) {
-      //Do nothing
+    if (move != null) {
+      try {
+        dungeon.movePlayer(move);
+        StringBuilder message = new StringBuilder("You moved ").append(move);
+        view.showMessage(message.toString());
+        view.refresh();
+      } catch (IllegalArgumentException iae) {
+        view.showMessage(iae.getMessage());
+      } catch (IllegalStateException ise) {
+        //Do nothing
+      }
     }
   }
 
