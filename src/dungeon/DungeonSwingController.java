@@ -91,7 +91,9 @@ public class DungeonSwingController implements DungeonGraphicalController {
     if (view == null) {
       throw new IllegalStateException("View cannot be null");
     }
-    createGame();
+    if (randomizer == null) {
+      throw new IllegalStateException("Randomizer cannot be null");
+    }
     this.randomizer = randomizer;
     this.rows = rows;
     this.columns = columns;
@@ -99,6 +101,7 @@ public class DungeonSwingController implements DungeonGraphicalController {
     this.interconnectivity = interconnectivity;
     this.treasureAndArrowPercentage = treasureAndArrowPercentage;
     this.numberOfMonsters = numberOfMonsters;
+    createGame();
   }
 
   /**
