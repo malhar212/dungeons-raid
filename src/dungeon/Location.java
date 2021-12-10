@@ -73,4 +73,11 @@ public interface Location {
    */
   int getArrows();
 
+  /**
+   * Checks whether this LocationNode has been explored by user.
+   *
+   * @return true if this location has been explored by user.
+   */
+  boolean isExplored();
+
 }

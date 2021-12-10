@@ -52,4 +52,5 @@ public class LocationTest {
   public void hasTreasure() {
     assertFalse(location.hasTreasure());
   }
+
 }

@@ -13,6 +13,7 @@ import dungeon.DungeonConsoleController;
 import dungeon.DungeonController;
 import dungeon.DungeonModel;
 import dungeon.Location;
+import dungeon.MockDungeon;
 import dungeon.Move;
 import dungeon.Player;
 import dungeon.Treasure;
@@ -24,7 +25,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Test the Dungeon controller.
+ * Tests the Dungeon controller.
  */
 public class DungeonControllerTest {
 
@@ -55,7 +56,7 @@ public class DungeonControllerTest {
         coordinates.add(currentY);
         break;
       }
-      case WEST: {
+      case EAST: {
         int y = currentY + 1;
         if (y == maze.get(currentX).size()) {
           y = 0;
@@ -64,7 +65,7 @@ public class DungeonControllerTest {
         coordinates.add(y);
         break;
       }
-      case EAST: {
+      case WEST: {
         int y = currentY - 1;
         if (y < 0) {
           y = maze.get(currentX).size() - 1;
@@ -110,7 +111,6 @@ public class DungeonControllerTest {
     assertEquals(nextLocation.getRow(), playerCurrentLocation.getRow());
     assertEquals(nextLocation.getColumn(), playerCurrentLocation.getColumn());
     assertTrue(gameLog.toString().contains("Where do we go?\n\nYou are in a cave,"));
-    assertTrue(gameLog.toString().contains("very strong rancid smell"));
   }
 
   @Test
@@ -192,9 +192,9 @@ public class DungeonControllerTest {
 
   @Test
   public void testShootHitInjureAndKill() {
-    StringReader input = new StringReader("M E S S 1 S S 1 q");
+    StringReader input = new StringReader("M W S S 1 S S 1 q");
     StringBuilder gameLog = new StringBuilder();
-    Location nextLocation = getNextLocation(Move.EAST, dungeonMonster);
+    Location nextLocation = getNextLocation(Move.WEST, dungeonMonster);
     DungeonController controller = new DungeonConsoleController(input, gameLog);
     Location playerCurrentLocation = dungeonMonster.getPlayerCurrentLocation();
     assertFalse(nextLocation.getRow() == playerCurrentLocation.getRow()
@@ -230,7 +230,8 @@ public class DungeonControllerTest {
 
   @Test
   public void testGameEndWin() {
-    StringReader input = new StringReader("P A M E S S 1 S S 1 M S M S M W S S 1 S S 1 M S M W");
+    StringReader input = new StringReader("P A M W S S 1 S S 1 M S M S M E M S M E M E S N 1 S N "
+            + "1 M N");
     StringBuilder gameLog = new StringBuilder();
     DungeonController controller = new DungeonConsoleController(input, gameLog);
     try {
@@ -243,7 +244,7 @@ public class DungeonControllerTest {
 
   @Test
   public void testChanceSurviveWithInjuredMonster() {
-    StringReader input = new StringReader("P A M E S S 1 M S M S M W S S 1 S S 1 M S M W");
+    StringReader input = new StringReader("P A M W S S 1 M S M S M E S S 1 S S 1 M S M E q");
     StringBuilder gameLog = new StringBuilder();
     DungeonController controller = new DungeonConsoleController(input, gameLog);
     try {
@@ -257,7 +258,7 @@ public class DungeonControllerTest {
 
   @Test
   public void testKilledByMonster() {
-    StringReader input = new StringReader("P A M E M S M S M W S S 1 S S 1 M S M W");
+    StringReader input = new StringReader("P A M W M S M S M E S S 1 S S 1 M S M E q");
     StringBuilder gameLog = new StringBuilder();
     DungeonController controller = new DungeonConsoleController(input, gameLog);
     try {
@@ -519,4 +520,91 @@ public class DungeonControllerTest {
     controller.play(dungeonMonster);
   }
 
+  @Test
+  public void mockControllerTestInvalidMove() throws IOException {
+    Dungeon mockDungeon = new MockDungeon();
+    StringReader input = new StringReader("M N q");
+    Appendable gameLog = new StringBuilder();
+    DungeonController controller = new DungeonConsoleController(input, gameLog);
+    controller.play(mockDungeon);
+    assertTrue(gameLog.toString().contains("Provided move is not a valid move NORTH"));
+  }
+
+  @Test
+  public void mockControllerTestMove() throws IOException {
+    Dungeon mockDungeon = new MockDungeon();
+    StringReader input = new StringReader("M S S S 1 q");
+    Appendable gameLog = new StringBuilder();
+    Location playerCurrentLocation = mockDungeon.getPlayerCurrentLocation();
+    int expectedRow = 5;
+    int expectedColumn = 6;
+    assertEquals(expectedRow,playerCurrentLocation.getRow());
+    assertEquals(expectedColumn,playerCurrentLocation.getColumn());
+    DungeonController controller = new DungeonConsoleController(input, gameLog);
+    controller.play(mockDungeon);
+    Location playerNewLocation = mockDungeon.getPlayerCurrentLocation();
+    int expectedRowColumn = 6;
+    assertEquals(expectedRowColumn,playerNewLocation.getRow());
+    assertEquals(expectedRowColumn,playerNewLocation.getColumn());
+    assertTrue(gameLog.toString().contains("Where do we go?\n\nYou are in a cave,"));
+  }
+
+  @Test
+  public void mockControllerTestShootArrow() throws IOException {
+    Dungeon mockDungeon = new MockDungeon();
+    StringReader input = new StringReader("S N 1 q");
+    Appendable gameLog = new StringBuilder();
+    Player player = mockDungeon.getPlayerDescription();
+    int expectedArrows = 3;
+    assertEquals(expectedArrows,player.getArrows());
+    DungeonController controller = new DungeonConsoleController(input, gameLog);
+    controller.play(mockDungeon);
+    int expectedArrowsAfter = 2;
+    Player playerAfterRun = mockDungeon.getPlayerDescription();
+    assertEquals(expectedArrowsAfter,playerAfterRun.getArrows());
+    assertTrue(gameLog.toString().contains("\nYour arrow goes whistling through the dungeon "
+            + "and there's a clunk "
+            + "as it falls to the ground after hitting a cave wall"));
+    assertTrue(gameLog.toString().contains(new StringBuilder("You have ")
+            .append(expectedArrowsAfter).append(" arrows left")));
+  }
+
+  @Test
+  public void mockControllerTestPickArrow() throws IOException {
+    Dungeon mockDungeon = new MockDungeon();
+    StringReader input = new StringReader("P A q");
+    Appendable gameLog = new StringBuilder();
+    Player player = mockDungeon.getPlayerDescription();
+    int expectedArrows = 3;
+    assertEquals(expectedArrows,player.getArrows());
+    DungeonController controller = new DungeonConsoleController(input, gameLog);
+    controller.play(mockDungeon);
+    int expectedArrowsAfter = 5;
+    Player playerAfterRun = mockDungeon.getPlayerDescription();
+    assertEquals(expectedArrowsAfter,playerAfterRun.getArrows());
+    assertTrue(gameLog.toString().contains("What to pick? Enter A for arrows or T for treasure"));
+    assertTrue(gameLog.toString().contains(new StringBuilder("You have picked up ")
+            .append("2 arrows")));
+    assertTrue(gameLog.toString().contains(new StringBuilder("You have ")
+            .append(expectedArrowsAfter).append(" arrows left")));
+  }
+
+  @Test
+  public void mockControllerTestPickTreasure() throws IOException {
+    Dungeon mockDungeon = new MockDungeon();
+    StringReader input = new StringReader("P T q");
+    Appendable gameLog = new StringBuilder();
+    Player player = mockDungeon.getPlayerDescription();
+    assertFalse(player.hasTreasure());
+    Location playerCurrentLocation = mockDungeon.getPlayerCurrentLocation();
+    assertTrue(playerCurrentLocation.hasTreasure());
+    DungeonController controller = new DungeonConsoleController(input, gameLog);
+    controller.play(mockDungeon);
+    assertTrue(gameLog.toString().contains("What to pick? Enter A for arrows or T for treasure"));
+    assertTrue(gameLog.toString().contains("You find 3 diamonds"));
+    assertTrue(gameLog.toString().contains(new StringBuilder("You picked up ")
+            .append("3 diamonds")));
+    assertTrue(gameLog.toString().contains(new StringBuilder("You now have the following treasure"
+            + " 3 diamonds")));
+  }
 }

@@ -1,18 +1,14 @@
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.List;
-import java.util.Set;
 
 import dungeon.Dungeon;
 import dungeon.DungeonConsoleController;
 import dungeon.DungeonController;
-import dungeon.DungeonGUIController;
-import dungeon.DungeonGUIView;
+import dungeon.DungeonGraphicalController;
+import dungeon.DungeonGraphicalView;
 import dungeon.DungeonModel;
 import dungeon.DungeonSwingController;
 import dungeon.DungeonView;
-import dungeon.Location;
-import dungeon.Move;
 import randomizer.GameRandomizer;
 import randomizer.Randomizer;
 
@@ -27,10 +23,11 @@ public class Driver {
    * @param args Arguments to the main method.
    */
   public static void main(String[] args) throws IOException {
-    if (args.length == 0 || (args.length == 1 && args[0].equalsIgnoreCase("true"))) {
-      DungeonView view = new DungeonGUIView();
-      DungeonGUIController guiController = new DungeonSwingController();
+    if (args.length == 0 || args[0].equalsIgnoreCase("true")) {
+      DungeonView view = new DungeonGraphicalView();
+      DungeonGraphicalController guiController = new DungeonSwingController();
       guiController.setView(view);
+      guiController.play();
     }
     else if (args[0].equalsIgnoreCase("false") && args.length == 7) {
       System.out.println("Please enter all parameters");
@@ -69,81 +66,5 @@ public class Driver {
     else if (args[0].equalsIgnoreCase("false") && args.length < 7) {
       System.out.println("Please provide all the parameters for text based game");
     }
-  }
-
-  private static StringBuilder visualizeKruskals(Dungeon dungeon) {
-    List<List<Location>> maze = dungeon.getMaze();
-    Location startLocation = dungeon.getStartLocation();
-    Location endLocation = dungeon.getEndLocation();
-    Location playerCurrentLocation = dungeon.getPlayerCurrentLocation();
-    StringBuilder sb = new StringBuilder();
-    int count = 0;
-    for (List<Location> list : maze) {
-      sb.append("\n");
-      for (Location locationNode : list) {
-        Set<Move> nextMoves = locationNode.getNextMoves();
-        if (nextMoves.contains(Move.NORTH)) {
-          sb.append("|");
-          count++;
-        } else {
-          sb.append(" ");
-        }
-        sb.append("  ");
-      }
-      sb.append("\n");
-      for (Location locationNode : list) {
-        if (compareLocations(startLocation, locationNode)
-                && compareLocations(playerCurrentLocation, locationNode)) {
-          sb.append("$");
-        } else if (compareLocations(startLocation, locationNode)) {
-          sb.append("S");
-        } else if (compareLocations(endLocation, locationNode)
-                && compareLocations(playerCurrentLocation, locationNode)) {
-          if (locationNode.hasMonster()) {
-            sb.append("M");
-          } else {
-            sb.append("*");
-          }
-        } else if (compareLocations(playerCurrentLocation, locationNode)) {
-          sb.append("P");
-        } else if (compareLocations(endLocation, locationNode)) {
-          sb.append("X");
-        }
-        /*if (locationNode.hasTreasure()) {
-          sb.append("▲");
-        }*/
-        if (locationNode.hasMonster()) {
-          sb.append("M");
-        } else {
-          switch (dungeon.getSmell(locationNode)) {
-            case NONE:
-              sb.append(0);
-              break;
-            case LESS:
-              sb.append(1);
-              break;
-            case MORE:
-              sb.append(2);
-              break;
-            default:
-              sb.append("N");
-          }
-        }
-        Set<Move> nextMoves = locationNode.getNextMoves();
-        if (nextMoves.contains(Move.WEST)) {
-          sb.append("--");
-          count++;
-        } else {
-          sb.append("  ");
-        }
-      }
-    }
-    sb.append("\n\nNumber of edges: ").append(count);
-    return sb;
-  }
-
-  private static boolean compareLocations(Location locationA, Location locationB) {
-    return locationA.getRow() == locationB.getRow()
-            && locationA.getColumn() == locationB.getColumn();
   }
 }

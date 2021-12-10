@@ -19,6 +19,7 @@ public final class LocationNode implements LocationPrivate {
   private final int column;
   private Monster monster;
   private int arrows;
+  private boolean explored;
 
   /**
    * Creates an instance of LocationNode with the given row and column value.
@@ -33,6 +34,26 @@ public final class LocationNode implements LocationPrivate {
     this.treasure = new HashMap<>();
     this.monster = null;
     this.arrows = 0;
+    this.explored = false;
+  }
+
+  /**
+   * Copy constructor to deep copy the location node so that new location node is not affected
+   * by changes to the old location node object.
+   *
+   * @param locationPrivate the Location object to be copied.
+   */
+  public LocationNode(LocationPrivate locationPrivate) {
+    this.row = locationPrivate.getRow();
+    this.column = locationPrivate.getColumn();
+    this.nextMoves = locationPrivate.getNextMoves();
+    this.treasure = locationPrivate.getTreasure();
+    this.monster = null;
+    if (locationPrivate.hasMonster()) {
+      this.monster = new Otyugh();
+    }
+    this.arrows = locationPrivate.getArrows();
+    this.explored = locationPrivate.isExplored();
   }
 
   /**
@@ -218,6 +239,16 @@ public final class LocationNode implements LocationPrivate {
     return arrows;
   }
 
+  /**
+   * Checks whether this LocationNode has been explored by user.
+   *
+   * @return true if this location has been explored by user.
+   */
+  @Override
+  public boolean isExplored() {
+    return explored;
+  }
+
   //package-private due to interface.
   @Override
   public void hitMonster() {
@@ -249,5 +280,10 @@ public final class LocationNode implements LocationPrivate {
   @Override
   public void setArrows(int numberOfArrows) {
     arrows = numberOfArrows;
+  }
+
+  @Override
+  public void setExplored() {
+    this.explored = true;
   }
 }

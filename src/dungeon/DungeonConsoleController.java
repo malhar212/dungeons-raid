@@ -34,7 +34,6 @@ public class DungeonConsoleController implements DungeonController {
    * Starts the run of a dungeon game.
    *
    * @param model the model of the dungeon game.
-   * @param view
    * @throws IOException if an I/O error occurs.
    * @throws IllegalArgumentException if the given model is null.
    */

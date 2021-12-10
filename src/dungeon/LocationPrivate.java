@@ -19,4 +19,6 @@ interface LocationPrivate extends Location {
   int pickArrows() throws IllegalStateException;
 
   void setArrows(int numberOfArrows);
+
+  void setExplored();
 }

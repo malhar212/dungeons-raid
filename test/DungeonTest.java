@@ -26,7 +26,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Test the Dungeon game.
+ * Tests the Dungeon game.
  */
 public class DungeonTest {
   private Dungeon dungeonWrapped;
@@ -35,6 +35,253 @@ public class DungeonTest {
   private Dungeon dungeon;
   private Dungeon dungeonTreasure30;
   private Dungeon dungeonMonster;
+
+  private static StringBuilder visualizeKruskals(Dungeon dungeon) {
+    List<List<Location>> maze = dungeon.getMaze();
+    Location startLocation = dungeon.getStartLocation();
+    Location endLocation = dungeon.getEndLocation();
+    Location playerCurrentLocation = dungeon.getPlayerCurrentLocation();
+    StringBuilder sb = new StringBuilder();
+    int count = 0;
+    for (List<Location> list : maze) {
+      sb.append("\n");
+      for (Location locationNode : list) {
+        Set<Move> nextMoves = locationNode.getNextMoves();
+        if (nextMoves.contains(Move.NORTH)) {
+          sb.append("|");
+          count++;
+        } else {
+          sb.append(" ");
+        }
+        sb.append("  ");
+      }
+      sb.append("\n");
+      for (Location locationNode : list) {
+        if (compareLocations(startLocation, locationNode) && compareLocations(playerCurrentLocation,
+                locationNode)) {
+          sb.append("$");
+        } else if (compareLocations(startLocation, locationNode)) {
+          sb.append("S");
+        } else if (compareLocations(endLocation, locationNode) && compareLocations(
+                playerCurrentLocation, locationNode)) {
+          sb.append("*");
+        } else if (compareLocations(playerCurrentLocation, locationNode)) {
+          sb.append("P");
+        } else if (compareLocations(endLocation, locationNode)) {
+          sb.append("X");
+        }
+        if (locationNode.hasTreasure()) {
+          sb.append("▲");
+        } else {
+          sb.append("0");
+        }
+        Set<Move> nextMoves = locationNode.getNextMoves();
+        if (nextMoves.contains(Move.EAST)) {
+          sb.append("--");
+          count++;
+        } else {
+          sb.append("  ");
+        }
+      }
+    }
+    sb.append("\n\nNumber of edges: ").append(count);
+    return sb;
+  }
+
+  private static void traverseAllNodes(Boolean[][] visitedGrid, Dungeon dungeon) {
+    while (!fullyTraversed(visitedGrid)) {
+      Location playerCurrentLocation = dungeon.getPlayerCurrentLocation();
+      int row = playerCurrentLocation.getRow();
+      int column = playerCurrentLocation.getColumn();
+      visitedGrid[row][column] = true;
+      if (playerCurrentLocation.hasTreasure()) {
+        dungeon.playerPickTreasure();
+      }
+      List<Move> availableMoves = new ArrayList<>(dungeon.getAvailableDirections());
+      Collections.shuffle(availableMoves);
+      goNextMove(dungeon, playerCurrentLocation, availableMoves);
+    }
+  }
+
+  private static int traverseAllNodesAndReturnTotalPaths(Dungeon dungeon) {
+    List<List<Location>> maze = dungeon.getMaze();
+    Boolean[][] visitedGrid = initiateVisitGrid(maze.size(),
+            maze.get(0).size());
+    int exitsFromNodes = 0;
+    for (int row = 0; row < maze.size(); row++) {
+      for (int column = 0; column < maze.get(row).size(); column++) {
+        List<Move> availableMoves = new ArrayList<>(maze.get(row).get(column).getNextMoves());
+        Collections.shuffle(availableMoves);
+        if (!visitedGrid[row][column]) {
+          exitsFromNodes += availableMoves.size();
+          visitedGrid[row][column] = true;
+        }
+      }
+    }
+    return exitsFromNodes / 2;
+  }
+
+  private static void traverseToEndNode(Dungeon dungeon) {
+    do {
+      Location playerCurrentLocation = dungeon.getPlayerCurrentLocation();
+      if (playerCurrentLocation.hasTreasure()) {
+        dungeon.playerPickTreasure();
+      }
+      List<Move> availableMoves = new ArrayList<>(dungeon.getAvailableDirections());
+      Collections.shuffle(availableMoves);
+      goNextMove(dungeon, playerCurrentLocation, availableMoves);
+    }
+    while (!compareLocations(dungeon.getPlayerCurrentLocation(), dungeon.getEndLocation()));
+  }
+
+  private static void traverseToFirstTreasureCave(Dungeon dungeon) {
+    do {
+      Location playerCurrentLocation = dungeon.getPlayerCurrentLocation();
+      if (playerCurrentLocation.hasTreasure()) {
+        break;
+      }
+      List<Move> availableMoves = new ArrayList<>(dungeon.getAvailableDirections());
+      Collections.shuffle(availableMoves);
+      goNextMove(dungeon, playerCurrentLocation, availableMoves);
+    }
+    while (!compareLocations(dungeon.getPlayerCurrentLocation(), dungeon.getEndLocation()));
+  }
+
+  private static void traverseToFirstArrowLocation(Dungeon dungeon) {
+    do {
+      Location playerCurrentLocation = dungeon.getPlayerCurrentLocation();
+      if (playerCurrentLocation.hasArrows()) {
+        break;
+      }
+      List<Move> availableMoves = new ArrayList<>(dungeon.getAvailableDirections());
+      Collections.shuffle(availableMoves);
+      goNextMove(dungeon, playerCurrentLocation, availableMoves);
+    }
+    while (!compareLocations(dungeon.getPlayerCurrentLocation(), dungeon.getEndLocation()));
+  }
+
+  private static void goNextMove(Dungeon dungeon, Location playerCurrentLocation,
+                                 List<Move> availableMoves) {
+    for (Move move : availableMoves) {
+      List<Integer> nextLocationRowsColumns = getNextLocation(move, dungeon);
+      Location nextLocation = getLocation(nextLocationRowsColumns.get(0),
+              nextLocationRowsColumns.get(1), dungeon);
+      if (!compareLocations(nextLocation, playerCurrentLocation)) {
+        dungeon.movePlayer(move);
+        break;
+      }
+    }
+  }
+
+  private static StringBuilder visualizeVisitedGrid(Boolean[][] visitedGrid) {
+    StringBuilder sb = new StringBuilder("\n");
+    for (Boolean[] booleans : visitedGrid) {
+      sb.append("\n");
+      for (Boolean aBoolean : booleans) {
+        sb.append(" ").append(aBoolean);
+      }
+    }
+    return sb;
+  }
+
+  private static boolean fullyTraversed(Boolean[][] visitedGrid) {
+    for (Boolean[] booleans : visitedGrid) {
+      for (Boolean aBoolean : booleans) {
+        if (!aBoolean) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  private static Boolean[][] initiateVisitGrid(int rows, int columns) {
+    Boolean[][] visitedGrid = new Boolean[rows][columns];
+    for (int i = 0; i < rows; i++) {
+      for (int j = 0; j < columns; j++) {
+        visitedGrid[i][j] = false;
+      }
+    }
+    return visitedGrid;
+  }
+
+  private static boolean compareLocations(Location locationA, Location locationB) {
+    return locationA.getRow() == locationB.getRow()
+            && locationA.getColumn() == locationB.getColumn();
+  }
+
+  private static List<Location> getAllCaves(List<List<Location>> maze) {
+    List<Location> allNodes = new ArrayList<>();
+    for (List<Location> yList : maze) {
+      for (Location location : yList) {
+        if (location.getNextMoves().size() != 2) {
+          allNodes.add(location);
+        }
+      }
+    }
+    return allNodes;
+  }
+
+  private static int getNumberOfTunnels(List<List<Location>> maze) {
+    return maze.size() * maze.get(0).size() - getAllCaves(maze).size();
+  }
+
+  private static Location getLocation(int x, int y, Dungeon dungeon) {
+    return dungeon.getMaze().get(x).get(y);
+  }
+
+  private static List<Integer> getNextLocation(Move move, Dungeon dungeon)
+          throws IllegalArgumentException, IllegalStateException {
+    int currentX = dungeon.getPlayerCurrentLocation().getRow();
+    int currentY = dungeon.getPlayerCurrentLocation().getColumn();
+    List<List<Location>> maze = dungeon.getMaze();
+    List<Integer> coordinates = new ArrayList<>();
+    switch (move) {
+      case NORTH: {
+        int x = currentX - 1;
+        if (x < 0) {
+          x = maze.size() - 1;
+        }
+        coordinates.add(x);
+        coordinates.add(currentY);
+        break;
+      }
+      case SOUTH: {
+        int x = currentX + 1;
+        if (x == maze.size()) {
+          x = 0;
+        }
+        coordinates.add(x);
+        coordinates.add(currentY);
+        break;
+      }
+      case EAST: {
+        int y = currentY + 1;
+        if (y == maze.get(currentX).size()) {
+          y = 0;
+        }
+        coordinates.add(currentX);
+        coordinates.add(y);
+        break;
+      }
+      case WEST: {
+        int y = currentY - 1;
+        if (y < 0) {
+          y = maze.get(currentX).size() - 1;
+        }
+        coordinates.add(currentX);
+        coordinates.add(y);
+        break;
+      }
+      default: {
+        throw new IllegalStateException("getNextLocation should never be in default condition");
+      }
+    }
+    if (coordinates.size() != 2) {
+      throw new IllegalArgumentException("Something went wrong in getting new coordinates");
+    }
+    return coordinates;
+  }
 
   @Before
   public void setUp() {
@@ -77,7 +324,7 @@ public class DungeonTest {
             0, randomizer3);
 
     Randomizer monsterRandomizer = new GameRandomizer(35, 33, 6, 6, 31, 4, 0,
-            32, 28, 12, 14, 7,14, 20, 4, 23, 11, 12, 11, 2, 10, 4, 4, 0, 2, 3, 1, 3,
+            32, 28, 12, 14, 7, 14, 20, 4, 23, 11, 12, 11, 2, 10, 4, 4, 0, 2, 3, 1, 3,
             9, 6, 7, 1, 4, 5, 2, 2, 1, 2, 1, 0, 16, 1, 2, 4, 2, 1, 1, 4, 3, 2, 2, 5,
             0, 1, 1, 1, 2, 1, 6, 2, 0, 5, 0, 1, 1, 2, 2, 3, 1, 3, 0, 2, 2, 1, 0, 4, 5,
             2, 1, 5, 0, 3, 11, 2, 0, 3, 13, 3, 6, 1, 0, 2, 11, 2, 12, 2, 11, 1, 8, 3, 9,
@@ -383,17 +630,17 @@ public class DungeonTest {
     //No interconnectivity, No treasure, not wrapped
     assertEquals(expectedValue, visualizeKruskals(dungeon).toString());
     int pathCount = 0;
-    dungeon.movePlayer(Move.WEST);
+    dungeon.movePlayer(Move.EAST);
     pathCount++;
-    dungeon.movePlayer(Move.WEST);
+    dungeon.movePlayer(Move.EAST);
     pathCount++;
     dungeon.movePlayer(Move.NORTH);
     pathCount++;
-    dungeon.movePlayer(Move.EAST);
+    dungeon.movePlayer(Move.WEST);
     pathCount++;
-    dungeon.movePlayer(Move.EAST);
+    dungeon.movePlayer(Move.WEST);
     pathCount++;
-    dungeon.movePlayer(Move.EAST);
+    dungeon.movePlayer(Move.WEST);
     pathCount++;
     dungeon.movePlayer(Move.SOUTH);
     pathCount++;
@@ -425,7 +672,7 @@ public class DungeonTest {
     assertEquals(expectedValueTreasureFilled,
             visualizeKruskals(dungeonWrappedInterconnectivityTreasure30).toString());
     //Try to move from 4,4 to 4,0
-    dungeonWrappedInterconnectivityTreasure30.movePlayer(Move.WEST);
+    dungeonWrappedInterconnectivityTreasure30.movePlayer(Move.EAST);
     Location playerCurrentLocation =
             dungeonWrappedInterconnectivityTreasure30.getPlayerCurrentLocation();
     int row = playerCurrentLocation.getRow();
@@ -580,18 +827,18 @@ public class DungeonTest {
       Set<Move> nextMoves = location.getNextMoves();
       assertNotEquals(2, nextMoves.size());
     }
-    dungeonMonster.movePlayer(Move.EAST);
+    dungeonMonster.movePlayer(Move.WEST);
     ArrowHitOutcome arrowHitOutcome = dungeonMonster.shootArrow(Move.SOUTH, 1);
-    assertEquals(ArrowHitOutcome.INJURED,arrowHitOutcome);
+    assertEquals(ArrowHitOutcome.INJURED, arrowHitOutcome);
     arrowHitOutcome = dungeonMonster.shootArrow(Move.SOUTH, 2);
-    assertEquals(ArrowHitOutcome.MISS,arrowHitOutcome);
+    assertEquals(ArrowHitOutcome.MISS, arrowHitOutcome);
     //Miss didn't kill monster even though it is in path
     monsterFilledLocations =
             getMonsterFilledLocations(dungeonMonster);
     assertEquals(expectedNumberOfMonsters,
             monsterFilledLocations.size());
     arrowHitOutcome = dungeonMonster.shootArrow(Move.SOUTH, 1);
-    assertEquals(ArrowHitOutcome.KILLED,arrowHitOutcome);
+    assertEquals(ArrowHitOutcome.KILLED, arrowHitOutcome);
     dungeonMonster.movePlayer(Move.SOUTH);
     Location playerCurrentLocation = dungeonMonster.getPlayerCurrentLocation();
     assertFalse(playerCurrentLocation.hasMonster());
@@ -628,13 +875,13 @@ public class DungeonTest {
     }
     Location playerCurrentLocation = dungeonMonster.getPlayerCurrentLocation();
     assertEquals(SmellLevel.LESS, dungeonMonster.getSmell(playerCurrentLocation));
-    dungeonMonster.movePlayer(Move.EAST);
+    dungeonMonster.movePlayer(Move.WEST);
     playerCurrentLocation = dungeonMonster.getPlayerCurrentLocation();
     assertEquals(SmellLevel.MORE, dungeonMonster.getSmell(playerCurrentLocation));
     dungeonMonster.movePlayer(Move.NORTH);
     playerCurrentLocation = dungeonMonster.getPlayerCurrentLocation();
     assertEquals(SmellLevel.LESS, dungeonMonster.getSmell(playerCurrentLocation));
-    dungeonMonster.movePlayer(Move.WEST);
+    dungeonMonster.movePlayer(Move.EAST);
     playerCurrentLocation = dungeonMonster.getPlayerCurrentLocation();
     assertEquals(SmellLevel.NONE, dungeonMonster.getSmell(playerCurrentLocation));
   }
@@ -643,33 +890,33 @@ public class DungeonTest {
   public void testMonsterSmellGoesAfterMonsterKilled() {
     Location playerCurrentLocation = dungeonMonster.getPlayerCurrentLocation();
     assertEquals(SmellLevel.LESS, dungeonMonster.getSmell(playerCurrentLocation));
-    dungeonMonster.movePlayer(Move.EAST);
+    dungeonMonster.movePlayer(Move.WEST);
     playerCurrentLocation = dungeonMonster.getPlayerCurrentLocation();
     assertEquals(SmellLevel.MORE, dungeonMonster.getSmell(playerCurrentLocation));
     dungeonMonster.movePlayer(Move.NORTH);
     playerCurrentLocation = dungeonMonster.getPlayerCurrentLocation();
     assertEquals(SmellLevel.LESS, dungeonMonster.getSmell(playerCurrentLocation));
-    dungeonMonster.movePlayer(Move.WEST);
+    dungeonMonster.movePlayer(Move.EAST);
     playerCurrentLocation = dungeonMonster.getPlayerCurrentLocation();
     assertEquals(SmellLevel.NONE, dungeonMonster.getSmell(playerCurrentLocation));
     dungeonMonster.movePlayer(Move.SOUTH);
-    dungeonMonster.movePlayer(Move.EAST);
+    dungeonMonster.movePlayer(Move.WEST);
     ArrowHitOutcome arrowHitOutcome = dungeonMonster.shootArrow(Move.SOUTH, 1);
-    assertEquals(ArrowHitOutcome.INJURED,arrowHitOutcome);
+    assertEquals(ArrowHitOutcome.INJURED, arrowHitOutcome);
     arrowHitOutcome = dungeonMonster.shootArrow(Move.SOUTH, 2);
-    assertEquals(ArrowHitOutcome.MISS,arrowHitOutcome);
+    assertEquals(ArrowHitOutcome.MISS, arrowHitOutcome);
     arrowHitOutcome = dungeonMonster.shootArrow(Move.SOUTH, 1);
-    assertEquals(ArrowHitOutcome.KILLED,arrowHitOutcome);
+    assertEquals(ArrowHitOutcome.KILLED, arrowHitOutcome);
     //after monster killed
     playerCurrentLocation = dungeonMonster.getPlayerCurrentLocation();
     assertEquals(SmellLevel.NONE, dungeonMonster.getSmell(playerCurrentLocation));
-    dungeonMonster.movePlayer(Move.WEST);
+    dungeonMonster.movePlayer(Move.EAST);
     playerCurrentLocation = dungeonMonster.getPlayerCurrentLocation();
     assertEquals(SmellLevel.NONE, dungeonMonster.getSmell(playerCurrentLocation));
     dungeonMonster.movePlayer(Move.NORTH);
     playerCurrentLocation = dungeonMonster.getPlayerCurrentLocation();
     assertEquals(SmellLevel.NONE, dungeonMonster.getSmell(playerCurrentLocation));
-    dungeonMonster.movePlayer(Move.EAST);
+    dungeonMonster.movePlayer(Move.WEST);
     playerCurrentLocation = dungeonMonster.getPlayerCurrentLocation();
     assertEquals(SmellLevel.NONE, dungeonMonster.getSmell(playerCurrentLocation));
   }
@@ -677,7 +924,7 @@ public class DungeonTest {
   @Test
   public void testChanceSurviveWithInjuredMonster() {
     Randomizer monsterRandomizer = new GameRandomizer(35, 33, 6, 6, 31, 4, 0,
-            32, 28, 12, 14, 7,14, 20, 4, 23, 11, 12, 11, 2, 10, 4, 4, 0, 2, 3, 1, 3,
+            32, 28, 12, 14, 7, 14, 20, 4, 23, 11, 12, 11, 2, 10, 4, 4, 0, 2, 3, 1, 3,
             9, 6, 7, 1, 4, 5, 2, 2, 1, 2, 1, 0, 16, 1, 2, 4, 2, 1, 1, 4, 3, 2, 2, 5,
             0, 1, 1, 1, 2, 1, 6, 2, 0, 5, 0, 1, 1, 2, 2, 3, 1, 3, 0, 2, 2, 1, 0, 4, 5,
             2, 1, 5, 0, 3, 11, 2, 0, 3, 13, 3, 6, 1, 0, 2, 11, 2, 12, 2, 11, 1, 8, 3, 9,
@@ -685,8 +932,8 @@ public class DungeonTest {
     DungeonModel monsterDungeon = new DungeonModel(
             5, 4, true, 4, 50, 3,
             monsterRandomizer);
-    monsterDungeon.movePlayer(Move.EAST);
-    monsterDungeon.shootArrow(Move.SOUTH,1);
+    monsterDungeon.movePlayer(Move.WEST);
+    monsterDungeon.shootArrow(Move.SOUTH, 1);
     monsterDungeon.movePlayer(Move.SOUTH);
     Location playerCurrentLocation = monsterDungeon.getPlayerCurrentLocation();
     assertTrue(playerCurrentLocation.hasMonster());
@@ -697,7 +944,7 @@ public class DungeonTest {
   @Test
   public void testChanceDieWithInjuredMonster() {
     Randomizer monsterRandomizer = new GameRandomizer(35, 33, 6, 6, 31, 4, 0,
-            32, 28, 12, 14, 7,14, 20, 4, 23, 11, 12, 11, 2, 10, 4, 4, 0, 2, 3, 1, 3,
+            32, 28, 12, 14, 7, 14, 20, 4, 23, 11, 12, 11, 2, 10, 4, 4, 0, 2, 3, 1, 3,
             9, 6, 7, 1, 4, 5, 2, 2, 1, 2, 1, 0, 16, 1, 2, 4, 2, 1, 1, 4, 3, 2, 2, 5,
             0, 1, 1, 1, 2, 1, 6, 2, 0, 5, 0, 1, 1, 2, 2, 3, 1, 3, 0, 2, 2, 1, 0, 4, 5,
             2, 1, 5, 0, 3, 11, 2, 0, 3, 13, 3, 6, 1, 0, 2, 11, 2, 12, 2, 11, 1, 8, 3, 9,
@@ -705,8 +952,8 @@ public class DungeonTest {
     DungeonModel monsterDungeon = new DungeonModel(
             5, 4, true, 4, 50, 3,
             monsterRandomizer);
-    monsterDungeon.movePlayer(Move.EAST);
-    monsterDungeon.shootArrow(Move.SOUTH,1);
+    monsterDungeon.movePlayer(Move.WEST);
+    monsterDungeon.shootArrow(Move.SOUTH, 1);
     monsterDungeon.movePlayer(Move.SOUTH);
     Location playerCurrentLocation = monsterDungeon.getPlayerCurrentLocation();
     assertTrue(playerCurrentLocation.hasMonster());
@@ -737,7 +984,7 @@ public class DungeonTest {
     //testing monster on end location
     assertTrue(dungeonMonster.getEndLocation().hasMonster());
     assertFalse(dungeonMonster.isPlayerDead());
-    dungeonMonster.movePlayer(Move.EAST);
+    dungeonMonster.movePlayer(Move.WEST);
     dungeonMonster.movePlayer(Move.SOUTH);
     assertTrue(dungeonMonster.isPlayerDead());
     assertTrue(dungeonMonster.isGameOver());
@@ -751,7 +998,7 @@ public class DungeonTest {
     //testing monster on end location
     assertTrue(dungeonMonster.getEndLocation().hasMonster());
     assertFalse(dungeonMonster.isPlayerDead());
-    dungeonMonster.movePlayer(Move.EAST);
+    dungeonMonster.movePlayer(Move.WEST);
     dungeonMonster.movePlayer(Move.SOUTH);
     assertTrue(dungeonMonster.isPlayerDead());
     assertTrue(dungeonMonster.isGameOver());
@@ -766,7 +1013,7 @@ public class DungeonTest {
     //testing monster on end location
     assertTrue(dungeonMonster.getEndLocation().hasMonster());
     assertFalse(dungeonMonster.isPlayerDead());
-    dungeonMonster.movePlayer(Move.EAST);
+    dungeonMonster.movePlayer(Move.WEST);
     dungeonMonster.movePlayer(Move.SOUTH);
     assertTrue(dungeonMonster.isPlayerDead());
     assertTrue(dungeonMonster.isGameOver());
@@ -781,7 +1028,7 @@ public class DungeonTest {
     //testing monster on end location
     assertTrue(dungeonMonster.getEndLocation().hasMonster());
     assertFalse(dungeonMonster.isPlayerDead());
-    dungeonMonster.movePlayer(Move.EAST);
+    dungeonMonster.movePlayer(Move.WEST);
     dungeonMonster.movePlayer(Move.SOUTH);
     assertTrue(dungeonMonster.isPlayerDead());
     assertTrue(dungeonMonster.isGameOver());
@@ -796,11 +1043,11 @@ public class DungeonTest {
     //testing monster on end location
     assertTrue(dungeonMonster.getEndLocation().hasMonster());
     assertFalse(dungeonMonster.isPlayerDead());
-    dungeonMonster.movePlayer(Move.EAST);
+    dungeonMonster.movePlayer(Move.WEST);
     dungeonMonster.movePlayer(Move.SOUTH);
     assertTrue(dungeonMonster.isPlayerDead());
     assertTrue(dungeonMonster.isGameOver());
-    dungeonMonster.shootArrow(Move.SOUTH,3);
+    dungeonMonster.shootArrow(Move.SOUTH, 3);
   }
 
   @Test
@@ -821,22 +1068,24 @@ public class DungeonTest {
       assertNotEquals(2, nextMoves.size());
     }
     dungeonMonster.playerPickArrows();
-    dungeonMonster.movePlayer(Move.EAST);
+    dungeonMonster.movePlayer(Move.WEST);
     dungeonMonster.playerPickArrows();
     ArrowHitOutcome arrowHitOutcome = dungeonMonster.shootArrow(Move.SOUTH, 1);
-    assertEquals(ArrowHitOutcome.INJURED,arrowHitOutcome);
+    assertEquals(ArrowHitOutcome.INJURED, arrowHitOutcome);
     arrowHitOutcome = dungeonMonster.shootArrow(Move.SOUTH, 1);
-    assertEquals(ArrowHitOutcome.KILLED,arrowHitOutcome);
+    assertEquals(ArrowHitOutcome.KILLED, arrowHitOutcome);
     dungeonMonster.movePlayer(Move.SOUTH);
     dungeonMonster.playerPickArrows();
     dungeonMonster.movePlayer(Move.SOUTH);
-    dungeonMonster.movePlayer(Move.WEST);
-    arrowHitOutcome = dungeonMonster.shootArrow(Move.SOUTH, 1);
-    assertEquals(ArrowHitOutcome.INJURED,arrowHitOutcome);
-    arrowHitOutcome = dungeonMonster.shootArrow(Move.SOUTH, 1);
-    assertEquals(ArrowHitOutcome.KILLED,arrowHitOutcome);
+    dungeonMonster.movePlayer(Move.EAST);
     dungeonMonster.movePlayer(Move.SOUTH);
-    dungeonMonster.movePlayer(Move.WEST);
+    dungeonMonster.movePlayer(Move.EAST);
+    dungeonMonster.movePlayer(Move.EAST);
+    arrowHitOutcome = dungeonMonster.shootArrow(Move.NORTH, 1);
+    assertEquals(ArrowHitOutcome.INJURED, arrowHitOutcome);
+    arrowHitOutcome = dungeonMonster.shootArrow(Move.NORTH, 1);
+    assertEquals(ArrowHitOutcome.KILLED, arrowHitOutcome);
+    dungeonMonster.movePlayer(Move.NORTH);
     assertTrue(dungeonMonster.isGameOver());
     assertTrue(dungeonMonster.playerVisitedEnd());
     assertFalse(dungeonMonster.isPlayerDead());
@@ -892,17 +1141,20 @@ public class DungeonTest {
     traverseToFirstTreasureCave(dungeonWrappedInterconnectivityTreasure30);
     playerNewLocationWithTreasure =
             dungeonWrappedInterconnectivityTreasure30.getPlayerCurrentLocation();
-    expectedValue = playerNewLocationWithTreasure.hasTreasure();
     caveTreasure = playerNewLocationWithTreasure.getTreasure();
-    assertTrue(caveTreasure.size() > 0);
-    dungeonWrappedInterconnectivityTreasure30.playerPickTreasure();
-    playerNewDescription = dungeonWrappedInterconnectivityTreasure30.getPlayerDescription();
-    //Location no longer has treasure after picking
-    assertFalse(playerNewLocationWithTreasure.hasTreasure());
-    //player has treasure and same as treasure that was in cave
-    assertTrue(playerNewDescription.hasTreasure());
-    assertEquals(caveTreasure.size(), playerNewDescription.getTreasure().size());
-    assertEquals(caveTreasure, playerNewDescription.getTreasure());
+    try {
+      dungeonWrappedInterconnectivityTreasure30.playerPickTreasure();
+      playerNewDescription = dungeonWrappedInterconnectivityTreasure30.getPlayerDescription();
+      //Location no longer has treasure after picking
+      assertFalse(playerNewLocationWithTreasure.hasTreasure());
+      //player has treasure and same as treasure that was in cave
+      assertTrue(playerNewDescription.hasTreasure());
+      assertEquals(caveTreasure.size(), playerNewDescription.getTreasure().size());
+      assertEquals(caveTreasure, playerNewDescription.getTreasure());
+    }
+    catch (IllegalStateException ise) {
+      //Do nothing
+    }
   }
 
   @Test
@@ -979,34 +1231,34 @@ public class DungeonTest {
   @Test(expected = IllegalStateException.class)
   public void testShootArrowWhenNoArrowWithPlayer() {
     //Picking on start position of maze with no treasure
-    dungeonMonster.shootArrow(Move.EAST,1);
-    dungeonMonster.shootArrow(Move.NORTH,1);
-    dungeonMonster.shootArrow(Move.NORTH,1);
-    dungeonMonster.shootArrow(Move.NORTH,1);
+    dungeonMonster.shootArrow(Move.EAST, 1);
+    dungeonMonster.shootArrow(Move.NORTH, 1);
+    dungeonMonster.shootArrow(Move.NORTH, 1);
+    dungeonMonster.shootArrow(Move.NORTH, 1);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testShootInvalidDirection() {
     //Picking on start position of maze with no treasure
-    dungeonMonster.shootArrow(Move.SOUTH,1);
+    dungeonMonster.shootArrow(Move.SOUTH, 1);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testShootInvalidDistance() {
     //Picking on start position of maze with no treasure
-    dungeonMonster.shootArrow(Move.NORTH,6);
+    dungeonMonster.shootArrow(Move.NORTH, 6);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testShootNegativeDistance() {
     //Picking on start position of maze with no treasure
-    dungeonMonster.shootArrow(Move.NORTH,-1);
+    dungeonMonster.shootArrow(Move.NORTH, -1);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testShootZeroDistance() {
     //Picking on start position of maze with no treasure
-    dungeonMonster.shootArrow(Move.NORTH,0);
+    dungeonMonster.shootArrow(Move.NORTH, 0);
   }
 
   @Test
@@ -1246,6 +1498,62 @@ public class DungeonTest {
             startLocationWrappedInterconnectivityTreasure30));
   }
 
+  @Test
+  public void testCopyConstructor() {
+    Location playerCurrentLocation = dungeonMonster.getPlayerCurrentLocation();
+    Location endLocation = dungeonMonster.getEndLocation();
+    boolean locationHasTreasureBefore = playerCurrentLocation.hasTreasure();
+    boolean locationHasArrowsBefore = playerCurrentLocation.hasArrows();
+    Dungeon copyDungeon = new DungeonModel(dungeonMonster);
+    //Before move copy dungeon getters
+    Location playerCurrentLocationCopy = copyDungeon.getPlayerCurrentLocation();
+    Location endLocationCopy = copyDungeon.getEndLocation();
+    boolean copyLocationHasTreasureBefore = playerCurrentLocationCopy.hasTreasure();
+    boolean copyLocationHasArrowsBefore = playerCurrentLocationCopy.hasArrows();
+    assertEquals(locationHasArrowsBefore, copyLocationHasArrowsBefore);
+    assertEquals(locationHasTreasureBefore, copyLocationHasTreasureBefore);
+    assertEquals(endLocation.getRow(), endLocationCopy.getRow());
+    assertEquals(endLocation.getColumn(), endLocationCopy.getColumn());
+    Location startLocation = dungeonMonster.getStartLocation();
+    Location startLocationCopy = copyDungeon.getStartLocation();
+    assertEquals(startLocation.getRow(), startLocationCopy.getRow());
+    assertEquals(startLocation.getColumn(), startLocationCopy.getColumn());
+    assertEquals(playerCurrentLocation.getRow(), playerCurrentLocationCopy.getRow());
+    assertEquals(playerCurrentLocation.getColumn(), playerCurrentLocationCopy.getColumn());
+    Player playerDescription = dungeonMonster.getPlayerDescription();
+    Player playerDescriptionCopy = copyDungeon.getPlayerDescription();
+    assertEquals(playerDescription.getArrows(), playerDescriptionCopy.getArrows());
+    assertEquals(playerDescription.getTreasure(), playerDescriptionCopy.getTreasure());
+    dungeonMonster.playerPickArrows();
+    dungeonMonster.playerPickTreasure();
+    //After move dungeon getters
+    Location playerCurrentLocationAfter = dungeonMonster.getPlayerCurrentLocation();
+    Location endLocationAfter = dungeonMonster.getEndLocation();
+    Location startLocationAfter = dungeonMonster.getStartLocation();
+    boolean locationHasTreasureAfter = playerCurrentLocationAfter.hasTreasure();
+    boolean locationHasArrowsAfter = playerCurrentLocationAfter.hasArrows();
+    //After move copy dungeon getters
+    Location playerCurrentLocationCopyAfter = copyDungeon.getPlayerCurrentLocation();
+    boolean copyLocationHasTreasureAfter = playerCurrentLocationCopyAfter.hasTreasure();
+    boolean copyLocationHasArrowsAfter = playerCurrentLocationCopyAfter.hasArrows();
+    assertNotEquals(locationHasTreasureAfter, copyLocationHasTreasureAfter);
+    assertNotEquals(locationHasArrowsAfter, copyLocationHasArrowsAfter);
+    dungeonMonster.movePlayer(Move.WEST);
+    playerCurrentLocationAfter = dungeonMonster.getPlayerCurrentLocation();
+    assertFalse(playerCurrentLocationAfter.getRow()
+            == playerCurrentLocationCopyAfter.getRow()
+            && playerCurrentLocationAfter.getColumn()
+            == playerCurrentLocationCopyAfter.getColumn());
+    assertNotEquals(playerCurrentLocationAfter.getArrows(),
+            playerCurrentLocationCopyAfter.getArrows());
+    assertNotEquals(playerCurrentLocationAfter.getTreasure(),
+            playerCurrentLocationCopyAfter.getTreasure());
+    Player playerDescriptionAfter = dungeonMonster.getPlayerDescription();
+    Player playerDescriptionCopyAfter = copyDungeon.getPlayerDescription();
+    assertNotEquals(playerDescriptionAfter.getArrows(), playerDescriptionCopyAfter.getArrows());
+    assertNotEquals(playerDescriptionAfter.getTreasure(), playerDescriptionCopyAfter.getTreasure());
+  }
+
   private List<Location> getTreasureFilledLocations(List<List<Location>> maze) {
     List<Location> treasureFilledLocations = new ArrayList<>();
     for (List<Location> list : maze) {
@@ -1285,252 +1593,5 @@ public class DungeonTest {
 
   private int getExpectedNumberOfPaths(Dungeon dungeon, int interconnectivity) {
     return ((dungeon.getMaze().size() * dungeon.getMaze().get(1).size()) - 1) + interconnectivity;
-  }
-
-  private static StringBuilder visualizeKruskals(Dungeon dungeon) {
-    List<List<Location>> maze = dungeon.getMaze();
-    Location startLocation = dungeon.getStartLocation();
-    Location endLocation = dungeon.getEndLocation();
-    Location playerCurrentLocation = dungeon.getPlayerCurrentLocation();
-    StringBuilder sb = new StringBuilder();
-    int count = 0;
-    for (List<Location> list : maze) {
-      sb.append("\n");
-      for (Location locationNode : list) {
-        Set<Move> nextMoves = locationNode.getNextMoves();
-        if (nextMoves.contains(Move.NORTH)) {
-          sb.append("|");
-          count++;
-        } else {
-          sb.append(" ");
-        }
-        sb.append("  ");
-      }
-      sb.append("\n");
-      for (Location locationNode : list) {
-        if (compareLocations(startLocation, locationNode) && compareLocations(playerCurrentLocation,
-                locationNode)) {
-          sb.append("$");
-        } else if (compareLocations(startLocation, locationNode)) {
-          sb.append("S");
-        } else if (compareLocations(endLocation, locationNode) && compareLocations(
-                playerCurrentLocation, locationNode)) {
-          sb.append("*");
-        } else if (compareLocations(playerCurrentLocation, locationNode)) {
-          sb.append("P");
-        } else if (compareLocations(endLocation, locationNode)) {
-          sb.append("X");
-        }
-        if (locationNode.hasTreasure()) {
-          sb.append("▲");
-        } else {
-          sb.append("0");
-        }
-        Set<Move> nextMoves = locationNode.getNextMoves();
-        if (nextMoves.contains(Move.WEST)) {
-          sb.append("--");
-          count++;
-        } else {
-          sb.append("  ");
-        }
-      }
-    }
-    sb.append("\n\nNumber of edges: ").append(count);
-    return sb;
-  }
-
-  private static void traverseAllNodes(Boolean[][] visitedGrid, Dungeon dungeon) {
-    while (!fullyTraversed(visitedGrid)) {
-      Location playerCurrentLocation = dungeon.getPlayerCurrentLocation();
-      int row = playerCurrentLocation.getRow();
-      int column = playerCurrentLocation.getColumn();
-      visitedGrid[row][column] = true;
-      if (playerCurrentLocation.hasTreasure()) {
-        dungeon.playerPickTreasure();
-      }
-      List<Move> availableMoves = new ArrayList<>(dungeon.getAvailableDirections());
-      Collections.shuffle(availableMoves);
-      goNextMove(dungeon, playerCurrentLocation, availableMoves);
-    }
-  }
-
-  private static int traverseAllNodesAndReturnTotalPaths(Dungeon dungeon) {
-    List<List<Location>> maze = dungeon.getMaze();
-    Boolean[][] visitedGrid = initiateVisitGrid(maze.size(),
-            maze.get(0).size());
-    int exitsFromNodes = 0;
-    for (int row = 0; row < maze.size(); row++) {
-      for (int column = 0; column < maze.get(row).size(); column++) {
-        List<Move> availableMoves = new ArrayList<>(maze.get(row).get(column).getNextMoves());
-        Collections.shuffle(availableMoves);
-        if (!visitedGrid[row][column]) {
-          exitsFromNodes += availableMoves.size();
-          visitedGrid[row][column] = true;
-        }
-      }
-    }
-    return exitsFromNodes / 2;
-  }
-
-  private static void traverseToEndNode(Dungeon dungeon) {
-    do {
-      Location playerCurrentLocation = dungeon.getPlayerCurrentLocation();
-      if (playerCurrentLocation.hasTreasure()) {
-        dungeon.playerPickTreasure();
-      }
-      List<Move> availableMoves = new ArrayList<>(dungeon.getAvailableDirections());
-      Collections.shuffle(availableMoves);
-      goNextMove(dungeon, playerCurrentLocation, availableMoves);
-    }
-    while (!compareLocations(dungeon.getPlayerCurrentLocation(), dungeon.getEndLocation()));
-  }
-
-  private static void traverseToFirstTreasureCave(Dungeon dungeon) {
-    do {
-      Location playerCurrentLocation = dungeon.getPlayerCurrentLocation();
-      if (playerCurrentLocation.hasTreasure()) {
-        break;
-      }
-      List<Move> availableMoves = new ArrayList<>(dungeon.getAvailableDirections());
-      Collections.shuffle(availableMoves);
-      goNextMove(dungeon, playerCurrentLocation, availableMoves);
-    }
-    while (!compareLocations(dungeon.getPlayerCurrentLocation(), dungeon.getEndLocation()));
-  }
-
-  private static void traverseToFirstArrowLocation(Dungeon dungeon) {
-    do {
-      Location playerCurrentLocation = dungeon.getPlayerCurrentLocation();
-      if (playerCurrentLocation.hasArrows()) {
-        break;
-      }
-      List<Move> availableMoves = new ArrayList<>(dungeon.getAvailableDirections());
-      Collections.shuffle(availableMoves);
-      goNextMove(dungeon, playerCurrentLocation, availableMoves);
-    }
-    while (!compareLocations(dungeon.getPlayerCurrentLocation(), dungeon.getEndLocation()));
-  }
-
-  private static void goNextMove(Dungeon dungeon, Location playerCurrentLocation,
-                                 List<Move> availableMoves) {
-    for (Move move : availableMoves) {
-      List<Integer> nextLocationRowsColumns = getNextLocation(move, dungeon);
-      Location nextLocation = getLocation(nextLocationRowsColumns.get(0),
-              nextLocationRowsColumns.get(1), dungeon);
-      if (!compareLocations(nextLocation, playerCurrentLocation)) {
-        dungeon.movePlayer(move);
-        break;
-      }
-    }
-  }
-
-  private static StringBuilder visualizeVisitedGrid(Boolean[][] visitedGrid) {
-    StringBuilder sb = new StringBuilder("\n");
-    for (Boolean[] booleans : visitedGrid) {
-      sb.append("\n");
-      for (Boolean aBoolean : booleans) {
-        sb.append(" ").append(aBoolean);
-      }
-    }
-    return sb;
-  }
-
-  private static boolean fullyTraversed(Boolean[][] visitedGrid) {
-    for (Boolean[] booleans : visitedGrid) {
-      for (Boolean aBoolean : booleans) {
-        if (!aBoolean) {
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-
-  private static Boolean[][] initiateVisitGrid(int rows, int columns) {
-    Boolean[][] visitedGrid = new Boolean[rows][columns];
-    for (int i = 0; i < rows; i++) {
-      for (int j = 0; j < columns; j++) {
-        visitedGrid[i][j] = false;
-      }
-    }
-    return visitedGrid;
-  }
-
-  private static boolean compareLocations(Location locationA, Location locationB) {
-    return locationA.getRow() == locationB.getRow()
-            && locationA.getColumn() == locationB.getColumn();
-  }
-
-  private static List<Location> getAllCaves(List<List<Location>> maze) {
-    List<Location> allNodes = new ArrayList<>();
-    for (List<Location> yList : maze) {
-      for (Location location : yList) {
-        if (location.getNextMoves().size() != 2) {
-          allNodes.add(location);
-        }
-      }
-    }
-    return allNodes;
-  }
-
-  private static int getNumberOfTunnels(List<List<Location>> maze) {
-    return maze.size() * maze.get(0).size() - getAllCaves(maze).size();
-  }
-
-  private static Location getLocation(int x, int y, Dungeon dungeon) {
-    return dungeon.getMaze().get(x).get(y);
-  }
-
-  private static List<Integer> getNextLocation(Move move, Dungeon dungeon)
-          throws IllegalArgumentException, IllegalStateException {
-    int currentX = dungeon.getPlayerCurrentLocation().getRow();
-    int currentY = dungeon.getPlayerCurrentLocation().getColumn();
-    List<List<Location>> maze = dungeon.getMaze();
-    List<Integer> coordinates = new ArrayList<>();
-    switch (move) {
-      case NORTH: {
-        int x = currentX - 1;
-        if (x < 0) {
-          x = maze.size() - 1;
-        }
-        coordinates.add(x);
-        coordinates.add(currentY);
-        break;
-      }
-      case SOUTH: {
-        int x = currentX + 1;
-        if (x == maze.size()) {
-          x = 0;
-        }
-        coordinates.add(x);
-        coordinates.add(currentY);
-        break;
-      }
-      case WEST: {
-        int y = currentY + 1;
-        if (y == maze.get(currentX).size()) {
-          y = 0;
-        }
-        coordinates.add(currentX);
-        coordinates.add(y);
-        break;
-      }
-      case EAST: {
-        int y = currentY - 1;
-        if (y < 0) {
-          y = maze.get(currentX).size() - 1;
-        }
-        coordinates.add(currentX);
-        coordinates.add(y);
-        break;
-      }
-      default: {
-        throw new IllegalStateException("getNextLocation should never be in default condition");
-      }
-    }
-    if (coordinates.size() != 2) {
-      throw new IllegalArgumentException("Something went wrong in getting new coordinates");
-    }
-    return coordinates;
   }
 }

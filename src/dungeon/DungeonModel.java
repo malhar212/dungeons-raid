@@ -1,6 +1,5 @@
 package dungeon;
 
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -50,7 +49,6 @@ public class DungeonModel implements Dungeon {
    * @throws IllegalArgumentException if interconnectivity is not between 0
    *                                  and maximum possible interconnectivity.
    */
-  //TODO Commandline params in readme and other places, Uncomment test
   public DungeonModel(int rows, int columns, boolean wrapped,
                       int interconnectivity, int treasureAndArrowPercentage, int numberOfMonsters,
                       Randomizer randomizer) throws IllegalArgumentException {
@@ -71,6 +69,35 @@ public class DungeonModel implements Dungeon {
     buildDungeon(rows, columns, wrapped, interconnectivity, treasureAndArrowPercentage,
             numberOfMonsters, randomizer);
   }
+
+  /**
+   * Creates a deep copy of the provided dungeon with player at the start state.
+   *
+   * @param dungeon model to copy the size, start, end locations from.
+   */
+  public DungeonModel(Dungeon dungeon) {
+    DungeonModel originalDungeon = (DungeonModel) dungeon;
+    this.randomizer = originalDungeon.randomizer;
+    this.maze = new ArrayList<>();
+    this.player = new PlayerModel();
+    this.startX = originalDungeon.startX;
+    this.startY = originalDungeon.startY;
+    this.endX = originalDungeon.endX;
+    this.endY = originalDungeon.endY;
+    this.currentX = originalDungeon.startX;
+    this.currentY = originalDungeon.startY;
+    this.playerVisitedEnd = false;
+    this.isGameOver = false;
+    this.isPlayerDead = false;
+    for (List<LocationPrivate> rows : originalDungeon.maze) {
+      List<LocationPrivate> row = new ArrayList<>();
+      for (LocationPrivate locationPrivate : rows) {
+        row.add(new LocationNode(locationPrivate));
+      }
+      this.maze.add(row);
+    }
+  }
+
 
   /**
    * Returns the maze of the dungeon.
@@ -152,28 +179,30 @@ public class DungeonModel implements Dungeon {
    *
    * @param move {@link Move} to be executed.
    * @throws IllegalArgumentException if provided move is not a valid move.
-   * @throws IllegalStateException if game is over and player is dead.
+   * @throws IllegalStateException    if game is over and player is dead.
    */
   @Override
   public void movePlayer(Move move) throws IllegalArgumentException {
-    if (isGameOver() && isPlayerDead()) {
+    if (isGameOver() || isPlayerDead()) {
       throw new IllegalStateException("Game has ended");
     }
     if (validateNextMove(move)) {
-      throw new IllegalArgumentException("Provided move is not a valid move " + move);
+      throw new IllegalArgumentException("Provided move is not a valid move " + (move == null ? "" :
+              move));
     }
     LocationPrivate nextLocation = getNextLocation(getPlayerCurrentLocation(), move);
     currentX = nextLocation.getRow();
     currentY = nextLocation.getColumn();
+    LocationPrivate location = getLocation(currentX, currentY);
+    location.setExplored();
     if (nextLocation.hasMonster()) {
       Monster monster = nextLocation.getMonster();
       if (!monster.isDead() && monster.isInjured()) {
-        int chance = randomizer.getRandomValue(0,1);
+        int chance = randomizer.getRandomValue(0, 1);
         if (chance == 1) {
           this.isPlayerDead = true;
         }
-      }
-      else {
+      } else {
         this.isPlayerDead = true;
       }
     }
@@ -193,7 +222,7 @@ public class DungeonModel implements Dungeon {
    */
   @Override
   public void playerPickTreasure() throws IllegalStateException {
-    if (isGameOver() && isPlayerDead()) {
+    if (isGameOver() || isPlayerDead()) {
       throw new IllegalStateException("Game has ended");
     }
     Location playerCurrentLocation = getPlayerCurrentLocation();
@@ -227,7 +256,7 @@ public class DungeonModel implements Dungeon {
    *
    * @param location the location whose smell level is to be obtained.
    * @return SmellLevel of the particular location.
-   * @throws IllegalStateException if there is problem with SmellLevel at the location.
+   * @throws IllegalStateException    if there is problem with SmellLevel at the location.
    * @throws IllegalArgumentException if invalid location is provided.
    */
   @Override
@@ -243,18 +272,18 @@ public class DungeonModel implements Dungeon {
   /**
    * Fires the crooked arrow in the specified direction and distance.
    *
-   * @param direction the direction in which to fire the arrow.
+   * @param direction     the direction in which to fire the arrow.
    * @param arrowDistance the number of caves the arrow should traverse.
    * @return ArrowHitOutcome value that represents whether monster is successfully hit.
    * @throws IllegalArgumentException if distance is less than 1 or greater than 5.
    * @throws IllegalArgumentException if an invalid direction is provided.
-   * @throws IllegalStateException if player has no arrows to fire.
-   * @throws IllegalStateException if game is over and player is dead.
+   * @throws IllegalStateException    if player has no arrows to fire.
+   * @throws IllegalStateException    if game is over and player is dead.
    */
   @Override
   public ArrowHitOutcome shootArrow(Move direction, int arrowDistance)
           throws IllegalArgumentException, IllegalStateException {
-    if (isGameOver() && isPlayerDead()) {
+    if (isGameOver() || isPlayerDead()) {
       throw new IllegalStateException("Game has ended");
     }
     if (arrowDistance <= 0 || arrowDistance > 5) {
@@ -277,7 +306,7 @@ public class DungeonModel implements Dungeon {
    */
   @Override
   public void playerPickArrows() throws IllegalStateException {
-    if (isGameOver() && isPlayerDead()) {
+    if (isGameOver() || isPlayerDead()) {
       throw new IllegalStateException("Game has ended");
     }
     LocationPrivate playerCurrentLocation = getLocation(currentX, currentY);
@@ -365,6 +394,8 @@ public class DungeonModel implements Dungeon {
         endX = endLocation.getRow();
         endY = endLocation.getColumn();
         updateCurrentPosition(startX, startY);
+        LocationPrivate startLoc = getLocation(startX, startY);
+        startLoc.setExplored();
         startEndSet = true;
       }
     }
@@ -426,7 +457,7 @@ public class DungeonModel implements Dungeon {
         coordinates.add(column);
         break;
       }
-      case WEST: {
+      case EAST: {
         int y = column + 1;
         if (y == maze.get(row).size()) {
           y = 0;
@@ -435,7 +466,7 @@ public class DungeonModel implements Dungeon {
         coordinates.add(y);
         break;
       }
-      case EAST: {
+      case WEST: {
         int y = column - 1;
         if (y < 0) {
           y = maze.get(row).size() - 1;
@@ -468,17 +499,22 @@ public class DungeonModel implements Dungeon {
         numberOfNodesToFillTreasure = 1;
       }
       while (numberOfNodesToFillTreasure > 0) {
-        List<Treasure> treasures = new ArrayList<>(Arrays.asList(Treasure.values()));
-        int randomIndex = randomizer.getRandomValue(0, allNodes.size() - 1);
-        LocationPrivate treasureNode = allNodes.remove(randomIndex);
-        int randomNumberOfTreasures = randomizer.getRandomValue(1, 3);
-        for (int i = 0; i < randomNumberOfTreasures; i++) {
-          int randomTreasureIndex = randomizer.getRandomValue(0, treasures.size() - 1);
-          Treasure treasure = treasures.remove(randomTreasureIndex);
-          int randomTreasureQuantity = randomizer.getRandomValue(1, 5);
-          treasureNode.setTreasure(treasure, randomTreasureQuantity);
+        if (allNodes.size() >= 1) {
+          List<Treasure> treasures = new ArrayList<>(Arrays.asList(Treasure.values()));
+          int randomIndex = randomizer.getRandomValue(0, allNodes.size() - 1);
+          LocationPrivate treasureNode = allNodes.remove(randomIndex);
+          int randomNumberOfTreasures = randomizer.getRandomValue(1, 3);
+          for (int i = 0; i < randomNumberOfTreasures; i++) {
+            int randomTreasureIndex = randomizer.getRandomValue(0, treasures.size() - 1);
+            Treasure treasure = treasures.remove(randomTreasureIndex);
+            int randomTreasureQuantity = randomizer.getRandomValue(1, 5);
+            treasureNode.setTreasure(treasure, randomTreasureQuantity);
+          }
+          numberOfNodesToFillTreasure--;
         }
-        numberOfNodesToFillTreasure--;
+        else {
+          break;
+        }
       }
     }
   }
@@ -497,11 +533,16 @@ public class DungeonModel implements Dungeon {
         numberOfLocationsToFillArrows = 1;
       }
       while (numberOfLocationsToFillArrows > 0) {
-        int randomIndex = randomizer.getRandomValue(0, totalLocations.size() - 1);
-        LocationPrivate arrowNode = totalLocations.remove(randomIndex);
-        int randomNumberOfArrows = randomizer.getRandomValue(1, 3);
-        arrowNode.setArrows(randomNumberOfArrows);
-        numberOfLocationsToFillArrows--;
+        if (totalLocations.size() >= 1) {
+          int randomIndex = randomizer.getRandomValue(0, totalLocations.size() - 1);
+          LocationPrivate arrowNode = totalLocations.remove(randomIndex);
+          int randomNumberOfArrows = randomizer.getRandomValue(1, 3);
+          arrowNode.setArrows(randomNumberOfArrows);
+          numberOfLocationsToFillArrows--;
+        }
+        else {
+          break;
+        }
       }
     }
   }
@@ -516,11 +557,16 @@ public class DungeonModel implements Dungeon {
     endNode.setMonster();
     numberOfMonsters--;
     while (numberOfMonsters > 0) {
-      int randomIndex = randomizer.getRandomValue(0, allNodes.size() - 1);
-      LocationPrivate monsterCave = allNodes.remove(randomIndex);
-      if (monsterCave.getRow() != startX && monsterCave.getColumn() != startY) {
-        monsterCave.setMonster();
-        numberOfMonsters--;
+      if (allNodes.size() >= 1) {
+        int randomIndex = randomizer.getRandomValue(0, allNodes.size() - 1);
+        LocationPrivate monsterCave = allNodes.remove(randomIndex);
+        if (monsterCave.getRow() != startX && monsterCave.getColumn() != startY) {
+          monsterCave.setMonster();
+          numberOfMonsters--;
+        }
+      }
+      else {
+        break;
       }
     }
   }
@@ -533,7 +579,7 @@ public class DungeonModel implements Dungeon {
     player.fireArrow();
     ArrowHitOutcome hit = ArrowHitOutcome.MISS;
     int distance = arrowDistance;
-    LocationPrivate arrowCurrentLocation = getLocation(currentX,currentY);
+    LocationPrivate arrowCurrentLocation = getLocation(currentX, currentY);
 
     Move travelDirection = direction;
     while (distance > 0) {
@@ -557,8 +603,7 @@ public class DungeonModel implements Dungeon {
       arrowCurrentLocation.hitMonster();
       if (arrowCurrentLocation.getMonster().isDead()) {
         hit = ArrowHitOutcome.KILLED;
-      }
-      else if (arrowCurrentLocation.getMonster().isInjured()) {
+      } else if (arrowCurrentLocation.getMonster().isInjured()) {
         hit = ArrowHitOutcome.INJURED;
       }
     }
@@ -694,7 +739,7 @@ public class DungeonModel implements Dungeon {
         if (y != columns - 1 || wrapped) {
           int x2 = x;
           int y2 = (y == columns - 1) ? 0 : y + 1;
-          edges.add(new Edge(x, y, x2, y2, Move.WEST));
+          edges.add(new Edge(x, y, x2, y2, Move.EAST));
         }
       }
     }
@@ -760,6 +805,6 @@ public class DungeonModel implements Dungeon {
     fillUpTreasure(treasurePercentage, randomizer);
     generateStartEndNodes(randomizer);
     fillUpArrows(treasurePercentage, randomizer);
-    fillUpMonsters(numberOfMonsters,randomizer);
+    fillUpMonsters(numberOfMonsters, randomizer);
   }
 }
