@@ -1,7 +1,5 @@
 package dungeon;
 
-import randomizer.GameRandomizer;
-
 import java.awt.Color;
 import java.awt.ComponentOrientation;
 import java.awt.Dimension;
@@ -45,10 +43,12 @@ import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.EtchedBorder;
 
+import randomizer.GameRandomizer;
+
 
 /**
- *  Represents a Graphical user interface view for Dungeon: display the game board and provide
- *  visual interface for users.
+ * Represents a Graphical user interface view for Dungeon: display the game board and provide
+ * visual interface for users.
  */
 public class DungeonGraphicalView extends JFrame implements DungeonView {
 
@@ -108,8 +108,8 @@ public class DungeonGraphicalView extends JFrame implements DungeonView {
             getImageIcon("/emerald.png"), JLabel.CENTER);
     playerRuby = new JLabel("0",
             getImageIcon("/ruby.png"), JLabel.CENTER);
-    locationDesc = new JLabel("Location:",getResizedImageIcon("/color-cells/NSEW.png",
-            30,30),
+    locationDesc = new JLabel("Location:", getResizedImageIcon("/color-cells/NSEW.png",
+            30, 30),
             JLabel.CENTER);
     messages = new JTextArea();
     dungeonPanel = new JPanel();
@@ -231,7 +231,7 @@ public class DungeonGraphicalView extends JFrame implements DungeonView {
     JLabel wrappedLabel = new JLabel("Dungeon wrapped:");
     JCheckBox wrapped = new JCheckBox();
     JPanel newGamePanel = new JPanel();
-    newGamePanel.setLayout(new GridLayout(7,2,10,10));
+    newGamePanel.setLayout(new GridLayout(7, 2, 10, 10));
     newGamePanel.add(new JLabel("Rows:"));
     newGamePanel.add(rows);
     newGamePanel.add(new JLabel("Columns:"));
@@ -317,7 +317,7 @@ public class DungeonGraphicalView extends JFrame implements DungeonView {
     dungeonPanel.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
     dungeonPanel.setBackground(Color.ORANGE);
     dungeonPanel.setFocusable(true);
-    pane.setInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT,new InputMap());
+    pane.setInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT, new InputMap());
     parentPanel.add(pane);
     this.add(parentPanel);
     try {
@@ -342,23 +342,27 @@ public class DungeonGraphicalView extends JFrame implements DungeonView {
   }
 
   private ImageIcon getImageIcon(String path) {
+    if (path == null) {
+      return null;
+    }
     try {
       return new ImageIcon(ImageIO.read(Objects.requireNonNull(
               getClass().getResourceAsStream(path))));
-    }
-    catch (IOException exception) {
+    } catch (IOException exception) {
       return null;
     }
   }
 
   private ImageIcon getResizedImageIcon(String path, int sizeX, int sizeY) {
+    if (path == null) {
+      return null;
+    }
     try {
       BufferedImage overlay = ImageIO.read(Objects.requireNonNull(
-            getClass().getResourceAsStream(path)));
+              getClass().getResourceAsStream(path)));
       Image tmp = overlay.getScaledInstance(sizeX, sizeY, Image.SCALE_SMOOTH);
       return new ImageIcon(tmp);
-    }
-    catch (IOException exception) {
+    } catch (IOException exception) {
       return null;
     }
   }
@@ -379,8 +383,8 @@ public class DungeonGraphicalView extends JFrame implements DungeonView {
     locationDescPanel.add(locationSapphire);
     locationDescPanel.add(locationRuby);
     JPanel playerDescPanel = new JPanel(new GridLayout(1, 5));
-    JLabel playerDesc = new JLabel("Player:",getResizedImageIcon(
-            "/player.png",30,30),
+    JLabel playerDesc = new JLabel("Player:", getResizedImageIcon(
+            "/player.png", 30, 30),
             JLabel.CENTER);
     playerDesc.setHorizontalAlignment(JLabel.CENTER);
     playerDescPanel.add(playerDesc);
@@ -403,16 +407,22 @@ public class DungeonGraphicalView extends JFrame implements DungeonView {
       updatePlayerDescription();
       Rectangle rectangle = visualizeDungeon(dungeon);
       dungeonPanel.scrollRectToVisible(rectangle);
-    } catch (IOException e) {
+    } catch (IOException | IllegalArgumentException e) {
       //Do nothing
     }
     parentPanel.repaint();
   }
 
-  private BufferedImage overlay(BufferedImage starting, String fpath, int offset) throws
-          IOException {
+  private BufferedImage overlay(BufferedImage starting, String path, int offset) throws
+          IOException, IllegalArgumentException {
+    if (starting == null) {
+      throw new IllegalArgumentException("Starting image cannot be null");
+    }
+    if (path == null) {
+      return starting;
+    }
     BufferedImage overlay = ImageIO.read(Objects.requireNonNull(
-            getClass().getResourceAsStream(fpath)));
+            getClass().getResourceAsStream(path)));
     int w = Math.max(starting.getWidth(), overlay.getWidth());
     int h = Math.max(starting.getHeight(), overlay.getHeight());
     BufferedImage combined = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
@@ -422,11 +432,17 @@ public class DungeonGraphicalView extends JFrame implements DungeonView {
     return combined;
   }
 
-  private BufferedImage overlay(BufferedImage starting, String fpath, int offsetX, int offsetY,
+  private BufferedImage overlay(BufferedImage starting, String path, int offsetX, int offsetY,
                                 int sizeX, int sizeY) throws
-          IOException {
+          IOException, IllegalArgumentException {
+    if (starting == null) {
+      throw new IllegalArgumentException("Starting image cannot be null");
+    }
+    if (path == null) {
+      return starting;
+    }
     BufferedImage overlay = ImageIO.read(Objects.requireNonNull(
-            getClass().getResourceAsStream(fpath)));
+            getClass().getResourceAsStream(path)));
     Image tmp = overlay.getScaledInstance(sizeX, sizeY, Image.SCALE_SMOOTH);
     int w = starting.getWidth();
     int h = starting.getHeight();
@@ -437,7 +453,11 @@ public class DungeonGraphicalView extends JFrame implements DungeonView {
     return combined;
   }
 
-  private Rectangle visualizeDungeon(ReadOnlyDungeon dungeon) throws IOException {
+  private Rectangle visualizeDungeon(ReadOnlyDungeon dungeon) throws IOException,
+          IllegalArgumentException {
+    if (dungeon == null) {
+      throw new IllegalArgumentException("Dungeon cannot be null");
+    }
     Location playerCurrentLocation = dungeon.getPlayerCurrentLocation();
     updateLocationDescription(playerCurrentLocation);
     dungeonPanel.setLayout(new GridBagLayout());
@@ -520,7 +540,7 @@ public class DungeonGraphicalView extends JFrame implements DungeonView {
         label.setYCoord(row);
         dungeonPanel.add(label, gridBagConstraints);
         if (compareLocations(playerCurrentLocation, locationNode)) {
-          bounds = new Rectangle(column * 64,row * 64,column * 20, row * 20);
+          bounds = new Rectangle(column * 64, row * 64, column * 20, row * 20);
         }
       }
     }
@@ -528,55 +548,62 @@ public class DungeonGraphicalView extends JFrame implements DungeonView {
   }
 
   private void updateLocationDescription(Location playerCurrentLocation) {
-    Set<Move> nextMoves = playerCurrentLocation.getNextMoves();
-    StringBuilder fileName = new StringBuilder("/color-cells/");
-    for (Move move : nextMoves) {
-      fileName.append(move.getShortForm());
+    if (playerCurrentLocation != null) {
+      Set<Move> nextMoves = playerCurrentLocation.getNextMoves();
+      StringBuilder fileName = new StringBuilder("/color-cells/");
+      for (Move move : nextMoves) {
+        fileName.append(move.getShortForm());
+      }
+      fileName.append(".png");
+      locationDesc.setIcon(getResizedImageIcon(fileName.toString(), 30, 30));
+      String resetValue = "0";
+      locationArrows.setText(resetValue);
+      locationDiamond.setText(resetValue);
+      locationSapphire.setText(resetValue);
+      locationRuby.setText(resetValue);
+      if (playerCurrentLocation.hasArrows()) {
+        locationArrows.setText(String.valueOf(playerCurrentLocation.getArrows()));
+      }
+      updateTreasureDescription(playerCurrentLocation.hasTreasure(),
+              playerCurrentLocation.getTreasure(), locationDiamond, locationSapphire, locationRuby);
     }
-    fileName.append(".png");
-    locationDesc.setIcon(getResizedImageIcon(fileName.toString(),30,30));
-    String resetValue = "0";
-    locationArrows.setText(resetValue);
-    locationDiamond.setText(resetValue);
-    locationSapphire.setText(resetValue);
-    locationRuby.setText(resetValue);
-    if (playerCurrentLocation.hasArrows()) {
-      locationArrows.setText(String.valueOf(playerCurrentLocation.getArrows()));
-    }
-    updateTreasureDescription(playerCurrentLocation.hasTreasure(),
-            playerCurrentLocation.getTreasure(),locationDiamond,locationSapphire,locationRuby);
   }
 
   private void updatePlayerDescription() {
     Player playerDescription = dungeon.getPlayerDescription();
     playerArrows.setText(String.valueOf(playerDescription.getArrows()));
     updateTreasureDescription(playerDescription.hasTreasure(), playerDescription.getTreasure(),
-            playerDiamond,playerSapphire,playerRuby);
+            playerDiamond, playerSapphire, playerRuby);
   }
 
   private void updateTreasureDescription(boolean b, Map<Treasure, Integer> treasure,
                                          JLabel diamond, JLabel sapphire, JLabel ruby) {
-    if (b) {
-      for (Treasure treasureItem : treasure.keySet()) {
-        switch (treasureItem) {
-          case DIAMONDS:
-            diamond.setText(String.valueOf(treasure.get(treasureItem)));
-            break;
-          case SAPPHIRES:
-            sapphire.setText(String.valueOf(treasure.get(treasureItem)));
-            break;
-          case RUBIES:
-            ruby.setText(String.valueOf(treasure.get(treasureItem)));
-            break;
-          default:
-            //Do nothing
-            break;
+    if (treasure != null && diamond != null && sapphire != null && ruby != null) {
+      if (b) {
+        for (Treasure treasureItem : treasure.keySet()) {
+          switch (treasureItem) {
+            case DIAMONDS:
+              diamond.setText(String.valueOf(treasure.get(treasureItem)));
+              break;
+            case SAPPHIRES:
+              sapphire.setText(String.valueOf(treasure.get(treasureItem)));
+              break;
+            case RUBIES:
+              ruby.setText(String.valueOf(treasure.get(treasureItem)));
+              break;
+            default:
+              //Do nothing
+              break;
+          }
         }
       }
     }
   }
 
   private StringBuilder visualizeKruskals(ReadOnlyDungeon dungeon) {
+    if (dungeon == null) {
+      return new StringBuilder();
+    }
     List<List<Location>> maze = dungeon.getMaze();
     Location startLocation = dungeon.getStartLocation();
     Location endLocation = dungeon.getEndLocation();
@@ -671,7 +698,11 @@ public class DungeonGraphicalView extends JFrame implements DungeonView {
     return move;
   }
 
-  private boolean compareLocations(Location locationA, Location locationB) {
+  private boolean compareLocations(Location locationA, Location locationB)
+          throws IllegalArgumentException {
+    if (locationA == null || locationB == null) {
+      throw new IllegalArgumentException("Location cannot be null");
+    }
     return locationA.getRow() == locationB.getRow()
             && locationA.getColumn() == locationB.getColumn();
   }
