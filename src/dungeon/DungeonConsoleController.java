@@ -204,37 +204,38 @@ public class DungeonConsoleController implements DungeonController {
                     arrowDistance = null;
                   } catch (IllegalStateException ise) {
                     appendable.append(ise.getMessage());
+                    arrowHit = null;
                     if (model.isGameOver()) {
                       break outerloop;
                     }
                   }
                 }
-                switch (arrowHit) {
-                  case MISS: {
-                    appendable
-                            .append("\nYour arrow goes whistling through the dungeon "
-                                    + "and there's a clunk "
-                                    + "as it falls to the ground after hitting a cave wall");
-                    break;
-                  }
-                  case INJURED: {
-                    appendable
-                            .append("\nYou hear a painful roar in the distance. "
-                                    + "It seems your arrow hit an Otyugh");
-                    break;
-                  }
-                  case KILLED: {
-                    appendable
-                            .append("\nYou hear a painful roar and wild thrashing in the "
-                                    + "darkness and then silence. "
-                                    + "It seems you've killed an Otyugh");
-                    break;
-                  }
-                  default: {
-                    appendable
-                            .append("\nYour arrow goes whistling through the dungeon "
-                                    + "and there's a clunk "
-                                    + "as it falls to the ground after hitting a cave wall");
+                if (arrowHit != null) {
+                  switch (arrowHit) {
+                    case MISS: {
+                      appendable
+                              .append("\nYour arrow goes whistling through the dungeon "
+                                      + "and there's a clunk "
+                                      + "as it falls to the ground after hitting a cave wall");
+                      break;
+                    }
+                    case INJURED: {
+                      appendable
+                              .append("\nYou hear a painful roar in the distance. "
+                                      + "It seems your arrow hit an Otyugh");
+                      break;
+                    }
+                    case KILLED: {
+                      appendable
+                              .append("\nYou hear a painful roar and wild thrashing in the "
+                                      + "darkness and then silence. "
+                                      + "It seems you've killed an Otyugh");
+                      break;
+                    }
+                    default: {
+                      appendable
+                              .append("");
+                    }
                   }
                 }
                 int remainingArrows = model.getPlayerDescription().getArrows();

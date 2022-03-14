@@ -75,7 +75,7 @@ public class DungeonGraphicalControllerTest {
     guiController.setGameConfig(5, 5, false, 0, 30, 100, new GameRandomizer());
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test(expected = IllegalStateException.class)
   public void testSetGameConfigInvalidRandomizer() {
     guiController.setGameConfig(5, 5, false, 0, 30, 5,null);
   }
@@ -113,7 +113,7 @@ public class DungeonGraphicalControllerTest {
             5, 4, true, 4, 50, 3,
             monsterRandomizer);
     guiController.handleCellClick(null);
-    assertTrue(log.toString().contains("Provided move is not a valid move"));
+    assertFalse(log.toString().contains("Provided move is not a valid move"));
   }
 
   @Test
