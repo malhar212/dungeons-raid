@@ -1,12 +1,12 @@
-#Dungeons
+# Dungeons
 
-##Overview
+## Overview
 Dungeons is dungeon game that creates a maze of caves and tunnels and starts off a player at the start cave.\
 Player can navigate through the maze collecting any treasures in the caves along the way or picking up arrows.\
 Player can shoot the arrows to kill monsters they encounter along the way\
 There will always be a monster at the end cave.
 
-##List of Features
+## List of Features
 1. Player can collect treasure.
 2. Player can collect arrows.
 3. Players can move in NORTH, SOUTH, EAST, WEST direction if the cave has those directions open.
@@ -19,7 +19,7 @@ There will always be a monster at the end cave.
 10. Restart game with a new dungeon with same configuration as previously provided.
 11. Create new game using GUI.
 
-##How to run
+## How to run
 1. Make sure java is installed on the system.
 2. Navigate to the directory where the jar file is stored using terminal.
 3. Run command `java -jar Project5.jar` or `java -jar Project5.jar true` to start program with a graphical user interface.
@@ -33,15 +33,15 @@ There will always be a monster at the end cave.
 11. `treasureAndArrowPercentage` integer percentage of caves to be filled with treasure and percentage of all locations to be filled with arrows.
 12. `numberOfMonsters` number of monsters in the dungeon. Even if number of monsters passed is 0 there will be a monster at the end.
 
-##How to use Program
+## How to use Program
 The game can be played by following instructions as provided on the screen.\
 
-###Common controls are to enter the corresponding alphabet irrespective of case\
+### Common controls are to enter the corresponding alphabet irrespective of case\
 MOVE: M SHOOT: S PICKUP: P QUIT: Q\
 You can input N for North, E for East, S for South, W for West\
 for the command you want to perform.
 
-###Controls for the Graphical User Interface
+### Controls for the Graphical User Interface
 You can use arrow keys or mouse for navigation\
 'A' to pickup arrows\
 'T' to pickup treasure\
@@ -54,7 +54,7 @@ Restart same config - Restart the game with same dungeon configuration, however 
 Help - Help on using the game.\
 Quit - To exit program. 
 
-###To create a GUI game
+### To create a GUI game
 To create a new DungeonView:
 ```
 DungeonView view = new DungeonGraphicalView();
@@ -279,7 +279,7 @@ You have escaped the mines of Moria
 You collected these treasures on your journey SAPPHIRES: 9 DIAMONDS: 5
 ```
 
-###Example of Graphical user interface
+### Example of Graphical user interface
 
 New game dialogbox\
 ![New Game Screenshot](newgame.png)
@@ -330,7 +330,7 @@ Game Win\
 ![Game Lost Screenshot](gamewin.png)
 
 
-##Design Changes
+## Design Changes
 The following changes were made to the previous design: 
 1. Added Custom implementation of JLabel for implementing dungeon
 2. Changed method signature of some methods.
@@ -338,7 +338,7 @@ The following changes were made to the previous design:
 4. Added methods to view to establish communication between View and Controller.
 5. Some changes to method name and return types.
 
-##Assumptions
+## Assumptions
 The following assumptions were made:
 1. Player is instantiated inside Dungeon model.
 2. The Dungeon model creation is responsibility of Controller.
@@ -346,12 +346,12 @@ The following assumptions were made:
 4. Arrows can only be fired at a distance of 1-5.
 5. Even if number of monsters passed is 0 there will be a monster at the end.
 
-##Limitations
+## Limitations
 1. Players cannot set their player names due to requirement of the project.
 2. Next location cannot be fetched without moving to that location.
 3. Arrows can only be fired at a distance of 1-5.
 
-##Citations
+## Citations
 1. [Random number generation between range](https://www.delftstack.com/howto/java/java-random-number-in-range/)
 2. [Running jar file](https://stackoverflow.com/questions/1238145/how-to-run-a-jar-file)
 3. [Markdown guide](https://www.markdownguide.org/cheat-sheet/)
